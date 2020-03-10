@@ -1,5 +1,5 @@
 # #-*- coding: utf-8 -*-
-
+                                # 1
 import jieba
 import jieba.posseg as pseg
 from collections import Counter
@@ -13,7 +13,10 @@ from collections import Counter
 # for word in words:
 # #     print(word.word.strip(),"/",word.flag,",")
 
-
+#创建停用词列表
+# def stopwordslis(filepath):
+#     stopwords = [line.strip() for line in open(filepath).readlines()]
+#     return stopwords
 #对句子分词
 def seg_sentence(sentence):
     sentence_seged = jieba.cut(sentence.strip())
