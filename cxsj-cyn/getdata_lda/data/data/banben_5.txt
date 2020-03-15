@@ -1,0 +1,267 @@
+<em>Please make sure that this is a bug. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:bug_template</em>
+
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow):
+[+] No
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04):
+[+] Ubuntu 18.04
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device:
+[+] NA
+- TensorFlow installed from (source or binary):
+[+] Binary
+- TensorFlow version (use command below):
+[+] Tensorflow v1.13.1-0-g6612da8951
+- Python version:
+[+] Python 3.6.0
+- Bazel version (if compiling from source):
+[+] NA
+- GCC/Compiler version (if compiling from source):
+[+] GCC 7.4.0
+- CUDA/cuDNN version:
+[+] CUDA v9.1.85
+- GPU model and memory:
+[+] GTX 1050 Mobile 4Gb
+
+**Describe the current behavior**
+
+Installation of Keras from source fails by doing the following.
+
+Running the commands as per the Keras installation instructions in a virtual environment.
+
+sudo python setup.py install
+...
+File "/tmp/easy_install-vOk903/scipy-1.3.0/setup.py", line 31, in
+author_email='francois.chollet@gmail.com',
+RuntimeError: Python version >= 3.5 required.
+
+**Describe the expected behavior**
+
+Successful Keras installation.
+
+**Code to reproduce the issue**
+
+[+] conda create -n kerasenv python=3.5.0
+[+] conda activate kerasenv
+[+] pip install tensorflow
+[+] git clone https://github.com/keras-team/keras.git
+[+] cd keras
+[+] sudo python setup.py install
+
+**Other info / logs**
+[+] [errorlog2.txt](https://github.com/tensorflow/tensorflow/files/3230162/errorlog2.txt)
+
+[+] Keras Issue: https://github.com/keras-team/keras/issues/12837
+<em>Please make sure that this is a bug. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:bug_template</em>
+
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): No
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Jupyter notebook on https://colab.research.google.com
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device: NA
+- TensorFlow installed from (source or binary): Stock on https:///colab.research.google.com
+- TensorFlow version (use command below): b'v1.13.1-2-g09e3b09e69' 1.13.1
+- Python version: 2/3
+- Bazel version (if compiling from source): NA
+- GCC/Compiler version (if compiling from source): NA 
+- CUDA/cuDNN version: NA
+- GPU model and memory: NA
+
+You can collect some of this information using our environment capture
+[script](https://github.com/tensorflow/tensorflow/tree/master/tools/tf_env_collect.sh)
+You can also obtain the TensorFlow version with: 1. TF 1.0: `python -c "import
+tensorflow as tf; print(tf.GIT_VERSION, tf.VERSION)"` 2. TF 2.0: `python -c
+"import tensorflow as tf; print(tf.version.GIT_VERSION, tf.version.VERSION)"`
+
+**Describe the current behavior**
+The random seed set via `tf.set_random_seed(seed)` is not set in the context in which the functions passed to `tf.data.Dataset#map` are invoked. Even for the single thread case. 
+**Describe the expected behavior**
+The random seed set via `tf.set_random_seed(seed)` should be set in the context in which the functions passed to `tf.data.Dataset#map` are invoked, at least for the single thread case. 
+
+**Code to reproduce the issue**
+```python
+import tensorflow as tf
+
+def seed_assert(elt):
+  seed = tf.get_default_graph().seed
+  print("Seed is {}".format(seed))
+  assert seed is not None, "Random seed is not set. Random graph operations added during mapping will not be reproducible."
+  return elt
+
+seed = 37
+      
+tf.set_random_seed(seed)  
+
+ds = tf.data.Dataset.from_generator(lambda : (yield (0)), (tf.int64))
+
+seed_assert(None)
+
+ds.map(seed_assert)
+```
+Can run here:
+[Seed in Dataset#Map.ipynb](https://colab.research.google.com/drive/1SIGhYzOKc6Sg147DiB-NFz_lXKym_mto#scrollTo=ENwL9Bo60BYw) 
+
+**Other info / logs**
+I originally saw this issue locally but was able to reproduce it on the Jupyter notebook provided by Google. Here is the log of the errors I see when running the above code.
+
+```python
+Seed is 37
+Seed is None
+
+---------------------------------------------------------------------------
+
+AssertionError                            Traceback (most recent call last)
+
+<ipython-input-7-38991a9ee77e> in <module>()
+     15 seed_assert(None)
+     16 
+---> 17 ds.map(seed_assert)
+
+8 frames
+
+<ipython-input-7-38991a9ee77e> in seed_assert(elt)
+      4   seed = tf.get_default_graph().seed
+      5   print("Seed is {}".format(seed))
+----> 6   assert seed is not None, "Random seed is not set. Random graph operations added during mapping will not be reproducible."
+      7   return elt
+      8 
+
+AssertionError: Random seed is not set. Random graph operations added during mapping will not be reproducible.
+```<em>Please make sure that this is a build/installation issue. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:build_template</em>
+
+**System information**
+- OS Platform and Distribution:Linux Ubuntu 18.04
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device: N/A
+- TensorFlow installed from (source or binary): Source
+- TensorFlow version: TF2.0
+- Python version: 3.7
+- Installed using virtualenv? pip? conda?: conda
+- Bazel version (if compiling from source): 0.25.3
+- GCC/Compiler version (if compiling from source): 7.4.0
+- CUDA/cuDNN version: 10.1
+- GPU model and memory: GTX 1060 3GB
+
+
+
+**Describe the problem**
+I am trying to build tensorflow 2.0 from source with cuda 10.1 . I followed a method used by #28936  but the package I build is always 1.13 even with --config=v2 flag
+
+
+
+**Provide the exact sequence of commands / steps that you executed before running into the problem**
+conda create -n tf2build pip python=3.7
+source activate tf2build
+pip install --upgrade --force-reinstall pip setuptools
+pip install wheel numpy scipy keras
+git clone https://github.com/tensorflow/tensorflow.git --single-branch --branch master
+cd tensorflow
+
+./configure
+ Use default values except:
+ CUDA support: Y
+
+export TMP=/tmp
+bazel build -c opt --config=opt --config=v2  \
+    --copt=-march=native --cxxopt=-march=native \
+    //tensorflow/tools/pip_package:build_pip_package --verbose_failures
+
+./bazel-bin/tensorflow/tools/pip_package/build_pip_package --nightly_flag /tmp/tensorflow_pkg
+
+**Any other info / logs**
+Include any logs or source code that would be helpful to diagnose the problem. If including tracebacks, please include the full traceback. Large logs and files should be attached.
+
+creating the package had the following log:
+
+There are no errors during the compilation process, only warnings
+
+Tue May 28 16:30:14 EDT 2019 : === Preparing sources in dir: /tmp/tmp.C6skAbFOnh
+~/tfbuild/tf2build/tensorflow ~/tfbuild/tf2build/tensorflow
+~/tfbuild/tf2build/tensorflow
+Tue May 28 16:30:32 EDT 2019 : === Building wheel
+warning: no files found matching '*.pyd' under directory '*'
+warning: no files found matching '*.pd' under directory '*'
+warning: no files found matching '*.dylib' under directory '*'
+warning: no files found matching '*.dll' under directory '*'
+warning: no files found matching '*.lib' under directory '*'
+warning: no files found matching '*.csv' under directory '*'
+warning: no files found matching '*.h' under directory 'tensorflow/include/tensorflow'
+warning: no files found matching '*' under directory 'tensorflow/include/Eigen'
+warning: no files found matching '*.h' under directory 'tensorflow/include/google'
+warning: no files found matching '*' under directory 'tensorflow/include/third_party'
+warning: no files found matching '*' under directory 'tensorflow/include/unsupported'
+Tue May 28 16:30:54 EDT 2019 : === Output wheel file is in: /tmp/tensorflow_pkg
+
+
+
+**System information**
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Linux Ubuntu 16.04
+device:
+- TensorFlow installed from (source or binary): binary
+- TensorFlow version (use command below):1.9
+- Python version:3.7.0
+- Bazel version (if compiling from source):
+- GCC/Compiler version (if compiling from source):
+- CUDA/cuDNN version: 
+- GPU model and memory:
+
+***Step 1***
+Train a keras model, and test it OK. saved as `model.h5`
+model as below:
+```
+model = Sequential()
+
+model.add(SeparableConv2D(32,
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu',
+                          input_shape=input_shape))
+
+model.add(SeparableConv2D(64,
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(SeparableConv2D(256,
+                          kernel_size=(3, 3),
+                          padding='same',
+                          activation='relu' ))
+model.add(AveragePooling2D(pool_size=(14, 14)))
+model.add(Flatten())
+```
+***Step 2***
+use `tensorflowjs_converter` to convert keras model to JS model.
+```
+>$ tensorflowjs_converter --input_format=keras ./my_model.h5 ./assets
+```
+and generate 2 files `group1-shard1of1` and `model.json`
+
+***Step 3***
+use converted model in JS project.
+```
+this.model = await tf.loadLayersModel(model_path);
+```
+and get errors like below:
+```
+core.js:15724 ERROR Error: Uncaught (in promise): Error: Fields kernelInitializer, kernelRegularizer and kernelConstraint are invalid for SeparableConv2D. Use depthwiseInitializer, depthwiseRegularizer, depthwiseConstraint, pointwiseInitializer, pointwiseRegularizer and pointwiseConstraint instead.
+Error: Fields kernelInitializer, kernelRegularizer and kernelConstraint are invalid for SeparableConv2D. Use depthwiseInitializer, depthwiseRegularizer, depthwiseConstraint, pointwiseInitializer, pointwiseRegularizer and pointwiseConstraint instead.
+    at new t (tf-layers.esm.js:17)
+    at t [as constructor] (tf-layers.esm.js:17)
+    at new t (tf-layers.esm.js:17)
+    at e.fromConfig (tf-core.esm.js:17)
+    at deserializeKerasObject (tf-layers.esm.js:17)
+    at deserialize (tf-layers.esm.js:17)
+    at t.fromConfig (tf-layers.esm.js:17)
+    at deserializeKerasObject (tf-layers.esm.js:17)
+    at deserialize (tf-layers.esm.js:17)
+    at tf-layers.esm.js:17
+    at resolvePromise (zone.js:831)
+    at zone.js:741
+    at rejected (tslib.es6.js:69)
+    at ZoneDelegate.push../node_modules/zone.js/dist/zone.js.ZoneDelegate.invoke (zone.js:391)
+    at Object.onInvoke (core.js:17299)
+    at ZoneDelegate.push../node_modules/zone.js/dist/zone.js.ZoneDelegate.invoke (zone.js:390)
+    at Zone.push../node_modules/zone.js/dist/zone.js.Zone.run (zone.js:150)
+    at zone.js:889
+    at ZoneDelegate.push../node_modules/zone.js/dist/zone.js.ZoneDelegate.invokeTask (zone.js:423)
+    at Object.onInvokeTask (core.js:17290)
+```
+
+## Note: if I replace the `SeparableConv2D` by `Conv2D`, everything will be OK.

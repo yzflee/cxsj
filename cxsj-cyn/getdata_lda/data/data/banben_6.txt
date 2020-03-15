@@ -1,0 +1,257 @@
+
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow):
+- OS Platform and Distribution: Linux Ubuntu 18.04
+- TensorFlow installed from (source or binary): bynary (tensorflow-gpu)
+- TensorFlow version (use command below): b'v1.13.1-0-g6612da8951' 1.13.1
+
+- Python version: Python 3.6.7
+- CUDA/cuDNN version: CUDA 10
+- GPU model and memory: NVIDIA 1060 GTX
+
+
+**Describe the current behavior**
+i'm trying to optimize a tensorflow model to tensort optimization. i'm using the example of object detection given by https://github.com/tensorflow/tensorrt/tree/master/tftrt/examples/object_detection. So the tensorflow model loads perfect but when I try to optimize it a segmentation fault raise.
+
+**Describe the expected behavior**
+
+**Code to reproduce the issue**
+`with tf.Graph().as_default() as tf_graph:
+            with tf.Session(config=tf_config) as tf_sess:
+                frozen_graph = trt.create_inference_graph(
+                    input_graph_def=frozen_graph,
+                    outputs=output_names,
+                    max_batch_size=max_batch_size,
+                    max_workspace_size_bytes=max_workspace_size_bytes,
+                    precision_mode=precision_mode,
+                    minimum_segment_size=minimum_segment_size,
+                    is_dynamic_op=True,
+                    maximum_cached_engines=maximum_cached_engines)`
+
+So the segmentation fault occurs in trt create_create_interference_graph.
+**Other info / logs**
+
+This is the log from python output
+
+> 2019-03-25 09:08:39.360172: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+> 2019-03-25 09:08:39.360201: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+> 2019-03-25 09:08:39.360207: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+> 2019-03-25 09:08:39.360210: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+> 2019-03-25 09:08:39.360303: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 5171 MB memory) -> physical GPU (device: 0, name: GeForce GTX 1060 6GB, pci bus id: 0000:01:00.0, compute capability: 6.1)
+> INFO:tensorflow:Running against TensorRT version 5.0.2
+> INFO:tensorflow:Running against TensorRT version 5.0.2
+> 2019-03-25 09:08:40.787773: I tensorflow/core/grappler/devices.cc:51] Number of eligible GPUs (core count >= 8): 1
+> 2019-03-25 09:08:40.788522: I tensorflow/core/grappler/clusters/single_machine.cc:359] Starting new session
+> 2019-03-25 09:08:40.790765: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0
+> 2019-03-25 09:08:40.790785: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+> 2019-03-25 09:08:40.790790: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 
+> 2019-03-25 09:08:40.790793: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N 
+> 2019-03-25 09:08:40.790903: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 5171 MB memory) -> physical GPU (device: 0, name: GeForce GTX 1060 6GB, pci bus id: 0000:01:00.0, compute capability: 6.1)
+> 2019-03-25 09:08:42.079562: I tensorflow/contrib/tensorrt/segment/segment.cc:443] There are 2316 ops of 32 different types in the graph that are not converted to TensorRT: Fill, Switch, Range, TopKV2, ConcatV2, Identity, Squeeze, Transpose, Const, Unpack, ResizeBilinear, Reshape, Mul, Slice, Merge, Split, Where, ExpandDims, NonMaxSuppressionV3, GatherV2, Cast, Greater, Minimum, Sub, ZerosLike, Pack, Exp, Placeholder, Add, Shape, NoOp, StridedSlice, (For more information see https://docs.nvidia.com/deeplearning/dgx/integrate-tf-trt/index.html#support-ops).
+> 2019-03-25 09:08:42.206925: I tensorflow/contrib/tensorrt/convert/convert_graph.cc:913] Number of TensorRT candidate segments: 185
+> 2019-03-25 09:08:47.654116: I tensorflow/contrib/tensorrt/convert/convert_graph.cc:1015] TensorRT node TRTEngineOp_0 added for segment 0 consisting of 486 nodes succeeded.
+> Segmentation fault (core dumped)
+
+And this is the callstack from gdb .
+
+> > 2019-03-25 09:12:23.651268: I tensorflow/contrib/tensorrt/convert/convert_graph.cc:1015] TensorRT node TRTEngineOp_0 added for segment 0 consisting of 486 nodes succeeded.
+> 
+> Thread 1 "python3" received signal SIGSEGV, Segmentation fault.
+> 0x00007fff68d60261 in tensorflow::tensorrt::convert::GetDeviceAndAllocator(tensorflow::tensorrt::convert::ConversionParams const&, tensorflow::tensorrt::convert::EngineInfo const&) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/contrib/tensorrt/_wrap_conversion.so
+> (gdb) bt
+> #0  0x00007fff68d60261 in tensorflow::tensorrt::convert::GetDeviceAndAllocator(tensorflow::tensorrt::convert::ConversionParams const&, tensorflow::tensorrt::convert::EngineInfo const&) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/contrib/tensorrt/_wrap_conversion.so
+> #1  0x00007fff68d651aa in tensorflow::tensorrt::convert::ConvertAfterShapes(tensorflow::tensorrt::convert::ConversionParams&) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/contrib/tensorrt/_wrap_conversion.so
+> #2  0x00007fff68d90f56 in tensorflow::tensorrt::convert::TRTOptimizationPass::Optimize(tensorflow::grappler::Cluster*, tensorflow::grappler::GrapplerItem const&, tensorflow::GraphDef*) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/contrib/tensorrt/_wrap_conversion.so
+> #3  0x00007fffb549a8ee in tensorflow::grappler::MetaOptimizer::RunOptimizer(tensorflow::grappler::GraphOptimizer*, tensorflow::grappler::Cluster*, tensorflow::grappler::GrapplerItem*, tensorflow::GraphDef*, tensorflow::grappler::MetaOptimizer::GraphOptimizationResult*) () from /usr/local/lib/python3.6/dist-packages/tensorflow/python/_pywrap_tensorflow_internal.so
+> #4  0x00007fffb549b552 in tensorflow::grappler::MetaOptimizer::OptimizeGraph(tensorflow::grappler::Cluster*, tensorflow::grappler::GrapplerItem const&, tensorflow::GraphDef*) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/python/_pywrap_tensorflow_internal.so
+> #5  0x00007fffb549c8a7 in tensorflow::grappler::MetaOptimizer::Optimize(tensorflow::grappler::Cluster*, tensorflow::grappler::GrapplerItem const&, tensorflow::GraphDef*) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/python/_pywrap_tensorflow_internal.so
+> #6  0x00007fffb028ab9c in TF_OptimizeGraph(GCluster, tensorflow::ConfigProto const&, tensorflow::MetaGraphDef const&, bool, std::string const&, TF_Status*) ()
+>    from /usr/local/lib/python3.6/dist-packages/tensorflow/python/_pywrap_tensorflow_internal.so
+> #7  0x00007fffb0293157 in _wrap_TF_OptimizeGraph () from /usr/local/lib/python3.6/dist-packages/tensorflow/python/_pywrap_tensorflow_internal.so
+> #8  0x0000000000502d6f in ?? ()
+> #9  0x0000000000506859 in _PyEval_EvalFrameDefault ()
+> #10 0x0000000000504c28 in ?? ()
+> #11 0x0000000000502540 in ?? ()
+> #12 0x0000000000502f3d in ?? ()
+> #13 0x0000000000507641 in _PyEval_EvalFrameDefault ()
+> #14 0x0000000000504c28 in ?? ()
+> #15 0x0000000000502540 in ?? ()
+> #16 0x0000000000502f3d in ?? ()
+> #17 0x0000000000507641 in _PyEval_EvalFrameDefault ()
+> #18 0x0000000000504c28 in ?? ()
+> #19 0x0000000000502540 in ?? ()
+> #20 0x0000000000502f3d in ?? ()
+> #21 0x0000000000507641 in _PyEval_EvalFrameDefault ()
+> #22 0x0000000000504c28 in ?? ()
+> #23 0x0000000000506393 in PyEval_EvalCode ()
+> #24 0x0000000000634d52 in ?? ()
+> #25 0x00000000004a38c5 in ?? ()
+> #26 0x00000000004a5cd5 in PyRun_InteractiveLoopFlags ()
+> #27 0x00000000006387b3 in PyRun_AnyFileExFlags ()
+> #28 0x000000000063915a in Py_Main ()
+> #29 0x00000000004a6f10 in main ()
+
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): No
+- OS Platform and Distribution : Linux Ubuntu 16.04
+- TensorFlow installed from (source or binary): source
+- TensorFlow version (use command below):1.12
+- Python version: 3.5
+- Bazel version (if compiling from source): NA
+- CUDA/cuDNN version: No gpu
+- GPU model and memory: No gpu
+
+
+**Describe the current behavior**
+I have the following script using which I was able to successfully convert [deeplabv3_mnv2_pascal_train.pb model ](https://drive.google.com/file/d/1xKI0SIrXB6Wl8SBuX-D1otI_8nuHjza1/view) into tflite format 
+
+script is as follows: 
+
+> tflite_convert \
+>   --output_file=test.lite \
+>   --graph_def_file=deeplabv3_mnv2_pascal_tain.pb \
+>   --input_arrays=ImageTensor \
+>   --output_arrays=SemanticPredictions \
+>   --input_shapes=1,513,513,3 \
+>   --inference_input_type=QUANTIZED_UINT8 \
+>   --inference_type=FLOAT \
+>   --mean_values=128 \
+>   --std_dev_values=128
+
+I obtained input_arrays, and output_arrays for deeplabv3_mnv2_pascal_train.pb using the following python script.
+
+> import tensorflow as tf
+> gf = tf.GraphDef()   
+> m_file = open('deeplabv3_mnv2_pascal_tain.pb','rb')
+> gf.ParseFromString(m_file.read())
+> 
+> #We get the names of the nodes
+> for n in gf.node:
+>     print( n.name )
+> 
+> #To get the tensor
+> tensor = n.op
+
+I am planning to apply the same steps above towards my custom trained model, and convert it into tflite format. My model is [here](https://drive.google.com/file/d/1YUoayPHOqnkd7PR0QVBS9Vzk15b6r4p3/view)
+I used the above python script to get the input_arrays, and output_arrays and then ran the following:
+
+> tflite_convert \
+>   --output_file=test.lite \
+>   --graph_def_file=my_graph.pb \
+>   --input_arrays=Const \
+>   --output_arrays=detection_masks \
+>   --input_shapes=1,513,513,3 \
+>   --inference_input_type=QUANTIZED_UINT8 \
+>   --inference_type=FLOAT \
+>   --mean_values=128 \
+>   --std_dev_values=128
+> 
+
+I am getting the following error :
+
+> 2019-03-25 12:54:10.156375: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+> Traceback (most recent call last):
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 558, in set_shape
+>     unknown_shape)
+> tensorflow.python.framework.errors_impl.InvalidArgumentError: Shapes must be equal rank, but are 1 and 4
+> 
+> During handling of the above exception, another exception occurred:
+> 
+> Traceback (most recent call last):
+>   File "/home/ajinkya/.local/bin/tflite_convert", line 11, in <module>
+>     sys.exit(main())
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/tflite_convert.py", line 412, in main
+>     app.run(main=run_main, argv=sys.argv[:1])
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/python/platform/app.py", line 125, in run
+>     _sys.exit(main(argv))
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/tflite_convert.py", line 408, in run_main
+>     _convert_model(tflite_flags)
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/tflite_convert.py", line 100, in _convert_model
+>     converter = _get_toco_converter(flags)
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/tflite_convert.py", line 87, in _get_toco_converter
+>     return converter_fn(**converter_kwargs)
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/lite.py", line 286, in from_frozen_graph
+>     _set_tensor_shapes(input_tensors, input_shapes)
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/contrib/lite/python/convert_saved_model.py", line 205, in set_tensor_shapes
+>     tensor.set_shape(shape)
+>   File "/home/ajinkya/.local/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 561, in set_shape
+>     raise ValueError(str(e))
+> ValueError: Shapes must be equal rank, but are 1 and 4
+
+How do I resolve this error?
+<em>Please make sure that this is a bug. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:bug_template</em>
+
+**System information**
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04):
+Linux Ubuntu 16.04.6 LTS
+- TensorFlow installed from (source or binary):
+pip
+- TensorFlow version (use command below):
+1.13.1
+- Python version:
+3.6.7
+
+**Describe the current behavior**
+I'm testing tensorflow distributed on the same machine. I opened two separate shells and created a cluster using:
+
+```python
+import tensorflow as tf  
+cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+server = tf.train.Server(cluster, job_name="local", task_index=0)
+```
+
+on shell 0 and
+
+```python
+import tensorflow as tf
+cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+server = tf.train.Server(cluster, job_name="local", task_index=1)
+```
+
+on shell 1.
+
+On shell 1 I ran:
+
+```python
+import tensorflow as tf
+import numpy as np
+
+def add(a, b):
+    return a + b
+
+NUM = 1000
+ones = np.ones((NUM))
+
+graph = tf.Graph()
+with graph.as_default():
+    va = tf.Variable(ones)
+    vb = tf.Variable(ones)
+    with tf.device("job:local/task:1"):
+        inputs = [va, vb]
+        out = tf.py_function(add, inputs, tf.float64)
+
+    with tf.Session("grpc://localhost:2223", graph=graph) as sess:
+        sess.run(tf.global_variables_initializer())
+        print(sess.run([va, vb]))
+        print(sess.run([out]))
+```
+
+which returns the error:
+
+> InternalError (see above for traceback): expected the py_func to return a Tensor backed by memory in /job:local/replica:0/task:1/device:CPU:0, but is actually in /job:localhost/replica:0/task:0/device:CPU:0. This is a bug.
+
+while this does not happen if I replace tf.py_function in the code above with tf.py_func.
+
+**Describe the expected behavior**
+
+Code should run successfully like when using tf.py_func and should print the arrays:
+
+> [array([1., 1., 1., 1., ..., 1., 1., 1., 1.]), array([1., 1., 1., 1., ..., 1., 1., 1., 1.])]
+> [array([2., 2., 2., 2., ..., 2., 2., 2., 2.])]
+This is one of the ToDo items in the file.

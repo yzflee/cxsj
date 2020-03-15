@@ -1,0 +1,136 @@
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): Yes script for testing nccl.reduce_sum, attached below.
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Linux Ubuntu 16.04
+- TensorFlow installed from (source or binary): Binary
+- TensorFlow version (use command below): 1.13.1
+- Python version: Python 3.6
+- CUDA/cuDNN version: 10.1 / 7
+- GPU model and memory: v100 16Gb
+
+**Describe the current behavior**
+nccl.reduce_sum() throws and error about feed_devices or fetch_devices not being found in the graph. nccl.all_reduce() works.
+
+**Describe the expected behavior**
+Expect to get a reduced tensor. 
+
+**Code to reproduce the issue**
+```
+import tensorflow as tf
+from tensorflow.python.ops import nccl_ops as nccl
+
+
+with tf.device('/gpu:0'):
+    a = tf.constant([1,2,3,4,5], dtype=tf.float32)
+
+with tf.device('/gpu:1'):
+    b = tf.constant([6,7,8,9,10], dtype=tf.float32)
+
+
+with tf.device('/gpu:0'):
+    c = nccl.reduce_sum([a, b])
+
+sess = tf.Session()
+print(sess.run(c)) 
+```
+
+**Other info / logs**
+```
+ubuntu@ip-172-31-26-69:~/tensorpack/examples/ResNet$ python test_nccl.py
+2019-06-24 20:41:57.077685: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2019-06-24 20:41:57.803050: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-06-24 20:41:57.828402: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-06-24 20:41:57.841325: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-06-24 20:41:57.852582: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-06-24 20:41:57.853980: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x4a9c130 executing computations on platform CUDA. Devices:
+2019-06-24 20:41:57.854028: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2019-06-24 20:41:57.854053: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (1): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2019-06-24 20:41:57.854077: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (2): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2019-06-24 20:41:57.854101: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (3): Tesla V100-SXM2-16GB, Compute Capability 7.0
+2019-06-24 20:41:57.860344: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2300060000 Hz
+2019-06-24 20:41:57.865200: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x4bbd9f0 executing computations on platform Host. Devices:
+2019-06-24 20:41:57.865270: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+2019-06-24 20:41:57.866085: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 0 with properties:
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:00:1b.0
+totalMemory: 15.75GiB freeMemory: 6.38GiB
+2019-06-24 20:41:57.866225: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 1 with properties:
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:00:1c.0
+totalMemory: 15.75GiB freeMemory: 3.71GiB
+2019-06-24 20:41:57.866329: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 2 with properties:
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:00:1d.0
+totalMemory: 15.75GiB freeMemory: 3.71GiB
+2019-06-24 20:41:57.866442: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1433] Found device 3 with properties:
+name: Tesla V100-SXM2-16GB major: 7 minor: 0 memoryClockRate(GHz): 1.53
+pciBusID: 0000:00:1e.0
+totalMemory: 15.75GiB freeMemory: 6.68GiB
+2019-06-24 20:41:57.866498: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1512] Adding visible gpu devices: 0, 1, 2, 3
+2019-06-24 20:41:57.872295: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] Device interconnect StreamExecutor with strength 1 edge matrix:
+2019-06-24 20:41:57.872370: I tensorflow/core/common_runtime/gpu/gpu_device.cc:990]      0 1 2 3
+2019-06-24 20:41:57.872395: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 0:   N Y Y Y
+2019-06-24 20:41:57.872413: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 1:   Y N Y Y
+2019-06-24 20:41:57.872425: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 2:   Y Y N Y
+2019-06-24 20:41:57.872440: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1003] 3:   Y Y Y N
+2019-06-24 20:41:57.872826: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 6203 MB memory) -> physical GPU (device: 0, name: Tesla V100-SXM2-16GB, pci bus id: 0000:00:1b.0, compute capability: 7.0)
+2019-06-24 20:41:57.873247: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 3496 MB memory) -> physical GPU (device: 1, name: Tesla V100-SXM2-16GB, pci bus id: 0000:00:1c.0, compute capability: 7.0)
+2019-06-24 20:41:57.873562: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:2 with 3498 MB memory) -> physical GPU (device: 2, name: Tesla V100-SXM2-16GB, pci bus id: 0000:00:1d.0, compute capability: 7.0)
+2019-06-24 20:41:57.873856: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:3 with 6496 MB memory) -> physical GPU (device: 3, name: Tesla V100-SXM2-16GB, pci bus id: 0000:00:1e.0, compute capability: 7.0)
+Traceback (most recent call last):
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1334, in _do_call
+    return fn(*args)
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1319, in _run_fn
+    options, feed_dict, fetch_list, target_list, run_metadata)
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1407, in _call_tf_sessionrun
+    run_metadata)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Tensor NcclReduce:0, specified in either feed_devices or fetch_devices was not found in the Graph
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "test_nccl.py", line 17, in <module>
+    print(sess.run(c))
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 929, in run
+    run_metadata_ptr)
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1152, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1328, in _do_run
+    run_metadata)
+  File "/home/ubuntu/venv/lib/python3.6/site-packages/tensorflow/python/client/session.py", line 1348, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Tensor NcclReduce:0, specified in either feed_devices or fetch_devices was not found in the Graph
+```- Check if checkpoints are available in TF-TRT quantization test
+- Use constant input test tensors instead of random tensors Otherwise the test sometimes fails depending on the generated random values.This PR tries to fix #29695. 
+
+The root cause is that for a shared iterator, the resource is not private to the kernel, so the resource cannot be released by [~IteratorHandleOp](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/data/iterator_ops.cc#L438-L450), and the [ResourceMgr::Clear()](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/resource_mgr.cc#L109-L118) needs to be called to free the shared resources. 
+
+For the case in #29695, the session close() tries to release the shared resources by calling `ResourceMgr::Clear()`, during which, as the generator dataset did not finish the iteration yet, it needs to delete the python generator by calling the finalizing function [here](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/data/generator_dataset_op.cc#L95). However,  when running the finalizing function, [the done function](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/data/captured_function.cc#L632) triggers the [ResourceMgr::CleanUp()](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/resource_mgr.cc#L218-L243) which causes the deadlock with `ResourceMgr::Clear()`.
+
+Here is the Traceback:
+```
+frame #0: 0x00007fff7565686a libsystem_kernel.dylib`__psynch_cvwait + 10
+    frame #1: 0x00007fff7571556e libsystem_pthread.dylib`_pthread_cond_wait + 722
+    frame #2: 0x00007fff72750a0a libc++.1.dylib`std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 18
+    frame #3: 0x000000011c13c61b libtensorflow_framework.so`nsync::nsync_mu_semaphore_p(nsync::nsync_semaphore_s_*) + 123
+    frame #4: 0x000000011c13a578 libtensorflow_framework.so`nsync::nsync_mu_lock_slow_(nsync::nsync_mu_s_*, nsync::waiter*, unsigned int, nsync::lock_type_s*) + 296
+    frame #5: 0x000000011c13a650 libtensorflow_framework.so`nsync::nsync_mu_lock(nsync::nsync_mu_s_*) + 80
+    frame #6: 0x000000011bbe9cf7 libtensorflow_framework.so`tensorflow::ResourceMgr::Cleanup(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&) + 39
+    frame #7: 0x0000000111fc5666 _pywrap_tensorflow_internal.so`std::__1::__function::__func<tensorflow::data::CapturedFunction::RunInstantiated(std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> > const&, std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> >*)::$_4, std::__1::allocator<tensorflow::data::CapturedFunction::RunInstantiated(std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> > const&, std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> >*)::$_4>, void (std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&)>::operator()(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&) + 54
+    frame #8: 0x0000000111fc4ca6 _pywrap_tensorflow_internal.so`tensorflow::ScopedStepContainer::~ScopedStepContainer() + 38
+    frame #9: 0x0000000111fc36a0 _pywrap_tensorflow_internal.so`tensorflow::data::CapturedFunction::RunInstantiated(std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> > const&, std::__1::vector<tensorflow::Tensor, std::__1::allocator<tensorflow::Tensor> >*) + 976
+    frame #10: 0x0000000111eb1085 _pywrap_tensorflow_internal.so`tensorflow::data::GeneratorDatasetOp::Dataset::Iterator::~Iterator() + 101
+    frame #11: 0x0000000111eb0d3e _pywrap_tensorflow_internal.so`tensorflow::data::GeneratorDatasetOp::Dataset::Iterator::~Iterator() + 14
+    frame #12: 0x0000000111eaea89 _pywrap_tensorflow_internal.so`tensorflow::data::(anonymous namespace)::FlatMapDatasetOp::Dataset::Iterator::~Iterator() + 105
+    frame #13: 0x00007fff72753d42 libc++.1.dylib`std::__1::__shared_weak_count::__release_shared() + 40
+    frame #14: 0x0000000111ec3755 _pywrap_tensorflow_internal.so`tensorflow::data::IteratorResource::~IteratorResource() + 149
+    frame #15: 0x0000000111ec366e _pywrap_tensorflow_internal.so`tensorflow::data::IteratorResource::~IteratorResource() + 14
+    frame #16: 0x000000011bbe7fa4 libtensorflow_framework.so`tensorflow::ResourceMgr::Clear() + 116
+    frame #17: 0x00000001139f362f _pywrap_tensorflow_internal.so`tensorflow::DirectSession::~DirectSession() + 655
+    frame #18: 0x00000001139f3aae _pywrap_tensorflow_internal.so`tensorflow::DirectSession::~DirectSession() + 14
+    frame #19: 0x00007fff72753d42 libc++.1.dylib`std::__1::__shared_weak_count::__release_shared() + 40
+    frame #20: 0x00000001112ceb7f _pywrap_tensorflow_internal.so`tensorflow::SessionRef::Close() + 223
+    frame #21: 0x000000011147f40b _pywrap_tensorflow_internal.so`TF_CloseSession + 27
+```
+
+cc: @jsimsa 
+We may locate the exact statement where the exception is raiased.

@@ -1,0 +1,10 @@
+testAdding Dockerfile.cpu.ppc64le and Dockerfile.gpu.ppc64le to enable the ability
+to do builds using docker on ppc64le. Also enables the ability to run
+ci_sanity.sh (from ci_build.sh) on ppc64le.
+
+Modified ci_build.sh and ci_parameterized_build.sh to accept container types
+that start with cpu or gpu.
+
+Added install_bazel_from_source.sh and install_buildifier_from_source.sh install
+scripts to avoid installing x86 versions of the binaries. These scripts could be
+used by other platforms in the future.
