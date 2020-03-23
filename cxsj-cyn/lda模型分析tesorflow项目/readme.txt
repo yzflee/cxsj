@@ -1,0 +1,3 @@
+data为获取到十个版本的issue
+data_search为对数据进行一系列clean后产生的文件
+issue获取整理分析 是项目代码
