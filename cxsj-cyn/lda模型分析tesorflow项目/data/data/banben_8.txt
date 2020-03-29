@@ -1,0 +1,141 @@
+Added the build script for compiling Tensorflow for NTC [C.H.I.P. $9 Computer](https://en.wikipedia.org/wiki/CHIP_(computer)). 
+
+Modified from instructions and build script for [Raspberry pi](https://www.tensorflow.org/install/install_raspbian)
+
+By default it compiles with vfpv3 FPU instructions; compile by:
+```
+CI_DOCKER_EXTRA_PARAMS="-e CI_BUILD_PYTHON=python3 -e CROSSTOOL_PYTHON_INCLUDE_PATH=/usr/include/python3.4" \
+tensorflow/tools/ci_build/ci_build.sh PI-PYTHON3 tensorflow/tools/ci_build/chip/build_ntc_chip.sh
+```
+ 
+Can be switched to neon instructions as well.
+```
+CI_DOCKER_EXTRA_PARAMS="-e CI_BUILD_PYTHON=python3 -e CROSSTOOL_PYTHON_INCLUDE_PATH=/usr/include/python3.4" \
+tensorflow/tools/ci_build/ci_build.sh PI-PYTHON3 tensorflow/tools/ci_build/chip/build_ntc_chip.sh NEON
+```
+
+Tested and working on actual CHIP using:
+1. Tensorflow hello world.
+2. Training Boston house prices [Keras tutorial](https://www.tensorflow.org/tutorials/keras/basic_regression)
+3. Saving and loading of Boston house price model.
+4. Tested with loading my custom Keras model, trained on 64bit Ubuntu.### System information
+- **Have I written custom code (as opposed to using a stock example script provided in TensorFlow)**: yes
+- **OS Platform and Distribution (e.g., Linux Ubuntu 16.04)**: Centos 7.4.1708
+- **Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device**:
+- **TensorFlow installed from (source or binary)**: source
+- **TensorFlow version (use command below)**: 1.10
+- **Python version**: 3.4.5
+- **Bazel version (if compiling from source)**: 0.16
+- **GCC/Compiler version (if compiling from source)**: 4.8.5
+- **CUDA/cuDNN version**: NA
+- **GPU model and memory**: NA
+- **Exact command to reproduce**: NA
+
+### Describe the problem
+Trying to run char_rnn using raw_rnns with LSTMCell using TF estimators on the shakespeare dataset. It trains when I don't use the xla jit compile. When I do try to add the xla jit compile, I run into errors.  
+
+first error:
+```
+Traceback (most recent call last):
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1278, in _do_call
+    return fn(*args)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1263, in _run_fn
+    options, feed_dict, fetch_list, target_list, run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1350, in _call_tf_sessionrun
+    run_metadata)
+tensorflow.python.framework.errors_impl.InternalError: Resource arguments cannot be constant (argument 3)
+	EncapsulateSubgraphsPass failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "basic_rnn.py", line 332, in <module>
+    classifier.train(input_fn, steps=args.num_steps)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/estimator/estimator.py", line 376, in train
+    loss = self._train_model(input_fn, hooks, saving_listeners)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/estimator/estimator.py", line 1145, in _train_model
+    return self._train_model_default(input_fn, hooks, saving_listeners)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/estimator/estimator.py", line 1173, in _train_model_default
+    saving_listeners)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/estimator/estimator.py", line 1451, in _train_with_estimator_spec
+    _, loss = mon_sess.run([estimator_spec.train_op, estimator_spec.loss])
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 583, in run
+    run_metadata=run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 1059, in run
+    run_metadata=run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 1150, in run
+    raise six.reraise(*original_exc_info)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/six.py", line 693, in reraise
+    raise value
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 1135, in run
+    return self._sess.run(*args, **kwargs)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 1207, in run
+    run_metadata=run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/training/monitored_session.py", line 987, in run
+    return self._sess.run(*args, **kwargs)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 877, in run
+    run_metadata_ptr)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1100, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1272, in _do_run
+    run_metadata)
+  File "/net/server5/srv/nfs/vishal-data/ws/venv_tf110/lib/python3.4/site-packages/tensorflow/python/client/session.py", line 1291, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InternalError: Resource arguments cannot be constant (argument 3)
+	EncapsulateSubgraphsPass failed
+```
+I fixed this by modifying the tensorflow/compiler/tf2xla/const_analysis.cc with
+```
+Status BackwardsConstAnalysis(const Graph& g,
+         int index;
+         status = GetNodeAttr(node->attrs(), "index", &index);
+         if (!status.ok()) return;
+-        compile_time_const_args->at(index) = true;
++       DataType dt;
++       status = GetNodeAttr(node->attrs(), "T", &dt);
++       if (!status.ok()) return;
++       if (dt != DT_RESOURCE) {
++         VLOG(1) << "HIHIH "<< SummarizeNodeDef(node->def());
++         compile_time_const_args->at(index) = true;
++       }
+         return;
+       }
+       for (const Edge* pred : node->in_edges()) {
+``` 
+I then run into this error:
+```
+ (No registered '_Retval' OpKernel for XLA_CPU_JIT devices compatible with node test_conv_gradients_test_conv_rnn_while_select_1_grad_select_f_acc_0_retval_RetVal = _Retval[T=DT_RESOURCE, index=0](test_conv/gradients/test_conv/rnn/while/Select_1_grad/Select/f_acc)
+         (OpKernel was found, but attributes didn't match)
+        .  Registered:  device='XLA_CPU_JIT'; T in [DT_FLOAT, DT_DOUBLE, DT_INT32, DT_COMPLEX64, DT_INT64, DT_BOOL, DT_HALF, DT_UINT32, DT_UINT64]
+  device='GPU'; T in [DT_STRING]
+  device='GPU'; T in [DT_RESOURCE]
+  device='GPU'; T in [DT_INT32]
+  device='GPU'; T in [DT_BOOL]
+  device='GPU'; T in [DT_COMPLEX128]
+  device='GPU'; T in [DT_COMPLEX64]
+  device='GPU'; T in [DT_INT8]
+  device='GPU'; T in [DT_UINT8]
+  device='GPU'; T in [DT_INT16]
+  device='GPU'; T in [DT_UINT16]
+  device='GPU'; T in [DT_INT64]
+  device='GPU'; T in [DT_DOUBLE]
+  device='GPU'; T in [DT_FLOAT]
+  device='GPU'; T in [DT_BFLOAT16]
+  device='GPU'; T in [DT_HALF]
+  device='CPU'
+  device='XLA_CPU'; T in [DT_FLOAT, DT_DOUBLE, DT_INT32, DT_COMPLEX64, DT_INT64, DT_BOOL, DT_HALF, DT_UINT32, DT_UINT64]
+)
+```
+
+Is there a way for me to fix this? Or for the tensorflow folks to fix this? Or is there an example of using raw_rnns with the xla jit compile that I can look at? Hello,
+
+I'm following the tf.profiler.Profiler guide to profile my code.
+When generating the timelines, all of them except the first one (for the first batch) are scaled in hundreds of years, rather than seconds.
+
+There is something happening at year 0, then something going on after 583 years.
+No, my DNN code is not that slow. 
+![screenshot_2018-09-05_23-19-38](https://user-images.githubusercontent.com/6018251/45128332-5c24b680-b175-11e8-96f6-c5cc9abee2d4.png)
+Running the latest stable version of everything.
+
+Could you please recommend me a fix?
+Thank you

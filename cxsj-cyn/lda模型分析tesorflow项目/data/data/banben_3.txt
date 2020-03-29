@@ -1,0 +1,152 @@
+**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): No
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04):
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device:
+- TensorFlow installed from (source or binary):
+- TensorFlow version (use command below): 2.0-rc0
+- Python version:
+- Bazel version (if compiling from source):
+- GCC/Compiler version (if compiling from source):
+- CUDA/cuDNN version:
+- GPU model and memory:
+
+**Describe the current behavior**
+Previously when running the code from the CVAE tutorial https://www.tensorflow.org/beta/tutorials/generative/cvae, I used in the sample function
+`if eps == None:`
+Which worked fine, however with rc0 it now throws an error from comparing a tensor to None and only works if the following is used
+`if eps is None`
+
+**Describe the expected behavior**
+Comparing if something == None and is None should have the same behavior
+
+**Code to reproduce the issue**
+See https://www.tensorflow.org/beta/tutorials/generative/cvae and change the sample function as described.
+<em>Please make sure that this is a bug. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:bug_template</em>
+
+**System information**
+- Have I written custom code: Nop, just some assembled statements
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): MacOS 10.14
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device: Samsung S9
+- TensorFlow installed from (source or binary): binary
+- TensorFlow version (use command below): tf-nightly 1.15.0.dev20190812
+- Python version: 3.6.5
+
+**Describe the current behavior**
+I'm trying to convert the Keras's MobileNet model with float16 precision for Gpu Inference. But when running tasks, I encountered the following Error:
+
+
+ Caused by: java.lang.IllegalArgumentException: Internal error: Failed to apply delegate: Next operations are not supported by GPU delegate:
+    MEAN: Operation is not supported.
+    First 88 operations will run on the GPU, and the remaining 5 on the CPU.tensorflow/lite/kernels/conv.cc:259 bias->type != input_type (10 != 1)Node number 90 (CONV_2D) failed to prepare.
+    tensorflow/lite/kernels/conv.cc:259 bias->type != input_type (10 != 1)Node number 3 (CONV_2D) failed to prepare.
+
+**Describe the expected behavior**
+
+**Code to reproduce the issue**
+the Python script for conversion is here:
+```python
+import tensorflow as tf
+import tensorflow.keras as keras
+
+model = keras.applications.mobilenet.MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True, weights='imagenet', input_tensor=None, pooling=None, classes=1000)
+converter = tf.lite.TFLiteConverter.from_keras_model_file("mobilenet.h5")
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.target_spec.supported_types = [tf.lite.constants.FLOAT16]
+tflite_model = converter.convert()
+open("mobilenet.tflite", "wb").write(tflite_model)
+```
+
+and in Android code, I called `tfliteOptions.setAllowFp16PrecisionForFp32(true);`
+**Other info / logs**
+Include any logs or source code that would be helpful to diagnose the problem. If including tracebacks, please include the full traceback. Large logs and files should be attached.
+Successfully tested  Hello World example on Arduino MKR1000 WiFi with fading LED effect.**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): Yes, I have a network that does 2D convultions + batch normalization on an image.
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Ubuntu 18.04
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device:
+- TensorFlow installed from (source or binary):
+- TensorFlow version (use command below): TF 1.14
+- Python version: 3.6.8
+- Bazel version (if compiling from source): N/A
+- GCC/Compiler version (if compiling from source): 7.4
+- CUDA/cuDNN version: 10.0
+- GPU model and memory: T4, 12GB
+
+**Describe the current behavior**
+
+I'm trying to optimize a custom model comprised of 2D convolutions and batch normalizations done on an image.  The entire network has fixed dimensions.  I'm using the nightly docker TF image to perform TF-TRT.
+
+I've tried to create a TRT model using both of the following functions:
+
+```
+def create_trt_saved_model(saved_model_dir, output_saved_model_dir, precision, batch_size=1):
+	''' convert saved model to TRT saved model'''
+
+	converter = trt.TrtGraphConverter(
+		input_saved_model_dir = str(saved_model_dir),
+		max_batch_size = batch_size,
+		precision_mode = precision )
+	converter.convert()
+	converter.save(output_saved_model_dir = str(output_saved_model_dir))
+```
+
+and
+
+```
+def create_trt_frozen_graph(graph_def, output_nodes, precision, 
+	output_graph_path = None, workspace_size=2<<10, batch_size=1):
+	''' convert frozen_graph to a TRT frozen graph'''
+	
+	converter = trt.TrtGraphConverter(
+		input_graph_def = graph_def,
+		nodes_blacklist = output_nodes,
+		max_batch_size = batch_size,
+		max_workspace_size_bytes = workspace_size<<20,
+		precision_mode = precision)
+
+	trt_graph_def = converter.convert()
+
+	if not (output_graph_path is None):
+		write_graph_to_file(trt_graph_def, output_graph_path)
+
+	return trt_graph_def
+```
+
+In both cases, the TF-TRT model is about 35X slower (20ms vs 700ms inference).  The results are the same regardless if I use the graph_def from memory, or load the TF-TRT saved model.
+
+Here is the respective TRT output:
+
+```
+2019-08-30 04:48:35.865582: I tensorflow/compiler/tf2tensorrt/segment/segment.cc:460] There are 4 ops of 3 different types in the graph that are not converted to TensorRT: Identity, NoOp, Placeholder, (For more information see https://docs.nvidia.com/deeplearning/frameworks/tf-trt-user-guide/index.html#supported-ops).
+2019-08-30 04:48:35.953878: I tensorflow/compiler/tf2tensorrt/convert/convert_graph.cc:633] Number of TensorRT candidate segments: 1
+2019-08-30 04:48:35.969432: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libnvinfer.so.5
+2019-08-30 04:48:35.969838: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libnvinfer_plugin.so.5
+2019-08-30 04:55:04.225714: I tensorflow/compiler/tf2tensorrt/convert/convert_graph.cc:734] TensorRT node TRTEngineOp_0 added for segment 0 consisting of 944 nodes succeeded.
+2019-08-30 04:55:04.352053: W tensorflow/compiler/tf2tensorrt/convert/trt_optimization_pass.cc:183] TensorRTOptimizer is probably called on funcdef! This optimizer must *NOT* be called on function objects.
+2019-08-30 04:55:04.402986: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:786] Optimization results for grappler item: tf_graph
+2019-08-30 04:55:04.403043: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 818 nodes (-817), 914 edges (-949), time = 62.326ms.
+2019-08-30 04:55:04.403049: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   layout: Graph size after: 950 nodes (132), 1046 edges (132), time = 50.486ms.
+2019-08-30 04:55:04.403054: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 946 nodes (-4), 1042 edges (-4), time = 45.175ms.
+2019-08-30 04:55:04.403059: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   TensorRTOptimizer: Graph size after: 3 nodes (-943), 2 edges (-1040), time = 388396.844ms.
+2019-08-30 04:55:04.403063: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 3 nodes (0), 2 edges (0), time = 2.443ms.
+2019-08-30 04:55:04.403067: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:786] Optimization results for grappler item: TRTEngineOp_0_native_segment
+2019-08-30 04:55:04.403072: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 946 nodes (0), 1042 edges (0), time = 26.303ms.
+2019-08-30 04:55:04.403076: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   layout: Graph size after: 946 nodes (0), 1042 edges (0), time = 30.005ms.
+2019-08-30 04:55:04.403092: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 946 nodes (0), 1042 edges (0), time = 26.387ms.
+2019-08-30 04:55:04.403097: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   TensorRTOptimizer: Graph size after: 946 nodes (0), 1042 edges (0), time = 3.387ms.
+2019-08-30 04:55:04.403103: I tensorflow/core/grappler/optimizers/meta_optimizer.cc:788]   constant_folding: Graph size after: 946 nodes (0), 1042 edges (0), time = 26.708ms.
+2019-08-30 04:55:04.727419: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:983] successful NUMA node read from SysFS had negative value (-1), but there must be at 
+```
+
+Since the TRT model only has 3 nodes, one of which is the TRT Engine node, does it make sense to convert this via UFF?  Would that get me a speed improvement?
+
+Or, is there a bug in the latest version of TF docker?
+
+Thanks!
+
+**Describe the expected behavior**
+
+**Code to reproduce the issue**
+Provide a reproducible test case that is the bare minimum necessary to generate the problem.
+
+**Other info / logs**
+Include any logs or source code that would be helpful to diagnose the problem. If including tracebacks, please include the full traceback. Large logs and files should be attached.

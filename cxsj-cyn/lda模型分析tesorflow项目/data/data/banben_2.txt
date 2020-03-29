@@ -1,0 +1,250 @@
+**System information**
+- OS Platform and Distribution: Arch Linux, 5.4.2-arch1-1-ARCH
+- TensorFlow installed from: binary
+- TensorFlow version: 2.1.0rc0-1
+- Keras version: 2.2.4-tf
+- Python version: 3.8
+- GPU model and memory: 2x GTX 1080 Ti 11GB"`
+
+**Describe the current behavior**
+executing Tensorflow's MNIST handwriting example produces error:
+the error dissapears if the code doesn't use OneDeviceStrategy or MirroredStrategy
+
+> W tensorflow/core/kernels/data/generator_dataset_op.cc:103] Error occurred when finalizing GeneratorDataset iterator: Cancelled: Operation was cancelled
+
+
+**Code to reproduce the issue**
+
+
+ ```
+ import tensorflow as tf
+  import tensorflow_datasets as tfds
+  import time
+  
+  from tensorflow.keras.optimizers import Adam
+  
+  def build_model():
+      filters = 48
+      units = 24
+      kernel_size = 7
+      learning_rate = 1e-4
+      model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(units, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+      ])
+      model.compile(loss='sparse_categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
+      return model
+  
+  datasets, info = tfds.load(name='mnist', with_info=True, as_supervised=True)
+  mnist_train, mnist_test = datasets['train'], datasets['test']
+  
+  num_train_examples = info.splits['train'].num_examples
+  num_test_examples = info.splits['test'].num_examples
+  
+  strategy = tf.distribute.OneDeviceStrategy(device='/gpu:0')
+  
+  BUFFER_SIZE = 10000
+  BATCH_SIZE = 32
+  
+  def scale(image, label):
+    image = tf.cast(image, tf.float32)
+    image /= 255
+    return image, label
+  
+  train_dataset = mnist_train.map(scale).shuffle(BUFFER_SIZE).repeat().batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+  eval_dataset = mnist_test.map(scale).repeat().batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+  
+  with strategy.scope():
+    model = build_model()
+  
+  epochs=5
+  start = time.perf_counter()
+  model.fit(
+          train_dataset,
+          validation_data=eval_dataset,
+          steps_per_epoch=num_train_examples/epochs,
+          validation_steps=num_test_examples/epochs,
+          epochs=epochs)
+  elapsed = time.perf_counter() - start
+  print('elapsed: {:0.3f}'.format(elapsed))
+```
+
+
+**System information**
+- OS Platform and Distribution: Arch Linux, 5.4.2-arch1-1-ARCH
+- TensorFlow installed from: binary
+- TensorFlow version: 2.1.0rc0-1
+- Keras version: 2.2.4-tf
+- Python version: 3.8
+- GPU model and memory: 2x GTX 1080 Ti 11GB"`
+
+**Describe the current behavior**
+executing Tensorflow's MNIST handwriting example produces warning:
+
+> WARNING:tensorflow:AutoGraph could not transform <bound method TopLevelFeature.decode_example of FeaturesDict({
+>     'image': Image(shape=(28, 28, 1), dtype=tf.uint8),
+>     'label': ClassLabel(shape=(), dtype=tf.int64, num_classes=10),
+> })> and will run it as-is.
+> Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
+> Cause: 'arguments' object has no attribute 'defaults'
+
+
+**Code to reproduce the issue**
+ import tensorflow as tf
+  import tensorflow_datasets as tfds
+  
+  from tensorflow.keras.optimizers import Adam
+  
+  def build_model():
+      filters = 48
+      units = 24
+      kernel_size = 7
+      learning_rate = 1e-4
+      model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(filters=filters, kernel_size=(kernel_size, kernel_size), activation='relu', input_shape=(28, 28, 1)),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(units, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+      ])
+      model.compile(loss='sparse_categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
+      return model
+  
+  datasets, info = tfds.load(name='mnist', with_info=True, as_supervised=True)
+  mnist_train, mnist_test = datasets['train'], datasets['test']
+  
+  num_train_examples = info.splits['train'].num_examples
+  num_test_examples = info.splits['test'].num_examples
+  
+  BUFFER_SIZE = 10000
+  BATCH_SIZE = 32
+  
+  def scale(image, label):
+    image = tf.cast(image, tf.float32)
+    image /= 255
+    return image, label
+  
+  train_dataset = mnist_train.map(scale).shuffle(BUFFER_SIZE).repeat().batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+  eval_dataset = mnist_test.map(scale).repeat().batch(BATCH_SIZE).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+  
+model = build_model()
+  
+  epochs=2
+  model.fit(
+          train_dataset,
+          validation_data=eval_dataset,
+          steps_per_epoch=num_train_examples/epochs,
+          validation_steps=num_test_examples/epochs,
+          epochs=epochs)**System information**
+- Have I written custom code (as opposed to using a stock example script provided in TensorFlow): N/A
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Ubuntu 16.04.6
+- Mobile device (e.g. iPhone 8, Pixel 2, Samsung Galaxy) if the issue happens on mobile device:
+- TensorFlow installed from (source or binary): binary
+- TensorFlow version (use command below): v2.0.0-rc2-26-g64c3d38 2.0.0
+- Python version: 3.7.3
+- Bazel version (if compiling from source): N/A
+- GCC/Compiler version (if compiling from source): N/A
+- CUDA/cuDNN version: V10.0.130
+- GPU model and memory: Tesla V100-SXM2
+
+**Describe the current behavior**
+In the Adam paper, we subtract the following quantity from our current gradient [0]:
+\alpha * \hat{m_t} / (\sqrt{v_t / (1-\beta^t_2)}  + \epsilon)
+
+<img width="475" alt="Screen Shot 2019-12-13 at 2 32 58 PM" src="https://user-images.githubusercontent.com/54961543/70836600-7f490780-1db5-11ea-9669-27c50fe48cae.png">
+
+The Tensorflow implementation subtracts a subtly different quantity ([1]):
+\alpha * \hat{m_t} * \sqrt{1-\beta^T_2} / (\sqrt{v_t} + \epsilon)
+
+<img width="438" alt="Screen Shot 2019-12-13 at 2 34 36 PM" src="https://user-images.githubusercontent.com/54961543/70836654-c1724900-1db5-11ea-9260-5fc0678f6f39.png">
+
+The difference between the two expressions is that in the first, we de-bias only the moving average of the squared gradient, v_t. In the second, this bias correction is also applied to \epsilon. This manifests as scaling up epilson quite a lot in very early training steps, reducing the magnitude of the gradient update.
+
+Note that the same bug was present in PyTorch prior to v1.3. It was fixed in this PR: https://github.com/pytorch/pytorch/pull/22628. That PR description provides a useful visualization.
+
+**Describe the expected behavior**
+Implement the algorithm as described in the paper. If the old implementation is necessary to preserve back-compat, providing a flag to trigger the correct implementation would be most helpful.
+
+
+[0] https://arxiv.org/pdf/1412.6980.pdf, see final 2 lines of Algorithm 1
+[1] Notable lines in TF implementation regarding this issue: 
+https://github.com/tensorflow/tensorflow/blob/r2.0/tensorflow/python/keras/optimizer_v2/adam.py#L162
+
+https://github.com/tensorflow/tensorflow/blob/r2.0/tensorflow/python/keras/optimizer_v2/adam.py#L245
+
+https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/training_ops.cc#L373
+
+<em>Please make sure that this is a build/installation issue. As per our [GitHub Policy](https://github.com/tensorflow/tensorflow/blob/master/ISSUES.md), we only address code/doc bugs, performance issues, feature requests and build/installation issues on GitHub. tag:build_template</em>
+
+**System information**
+- OS Platform and Distribution (e.g., Linux Ubuntu 16.04): Manjaro Linux (kernel 4.19)
+- TensorFlow installed from (source or binary): binary? I'm not sure, I used `pip install tensorflow`
+- TensorFlow version: 2.0.0
+- Python version: Python 3.6.8
+- Installed using virtualenv? pip? conda?: pip. This is in a virtualenv environment though.
+
+**Describe the problem**
+Running `tf_upgrade_v2` on a file that has async functions causes it to crash. 
+
+**Provide the exact sequence of commands / steps that you executed before running into the problem**
+```tf_upgrade_v2 --infile ./image_classification/test_tf.py --outfile ./image_classification_v2/test_tf.py
+Traceback (most recent call last):
+  File "/home/alex/git-repos/bic-bot-py/bin/tf_upgrade_v2", line 8, in <module>
+    sys.exit(main())
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/tensorflow_core/tools/compatibility/tf_upgrade_v2_main.py", line 139, in main
+    args.input_file, output_file, upgrade)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/tensorflow_core/tools/compatibility/tf_upgrade_v2_main.py", line 40, in process_file
+    upgrader.process_file(in_filename, out_filename)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/tensorflow_core/tools/compatibility/ast_edits.py", line 900, in process_file
+    temp_file)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/tensorflow_core/tools/compatibility/ast_edits.py", line 960, in process_opened_file
+    self.update_string_pasta("".join(lines), in_filename))
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/tensorflow_core/tools/compatibility/ast_edits.py", line 916, in update_string_pasta
+    t = pasta.parse(text)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/__init__.py", line 25, in parse
+    annotator.visit(t)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 1201, in visit
+    super(AstAnnotator, self).visit(node)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 133, in visit
+    super(BaseVisitor, self).visit(node)
+  File "/home/alex/.pyenv/versions/3.6.8/lib/python3.6/ast.py", line 253, in visit
+    return visitor(node)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 47, in wrapped
+    f(self, node, *args, **kwargs)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 225, in visit_Module
+    self.generic_visit(node)
+  File "/home/alex/.pyenv/versions/3.6.8/lib/python3.6/ast.py", line 261, in generic_visit
+    self.visit(item)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 1201, in visit
+    super(AstAnnotator, self).visit(node)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 133, in visit
+    super(BaseVisitor, self).visit(node)
+  File "/home/alex/.pyenv/versions/3.6.8/lib/python3.6/ast.py", line 253, in visit
+    return visitor(node)
+  File "/home/alex/.pyenv/versions/3.6.8/lib/python3.6/ast.py", line 261, in generic_visit
+    self.visit(item)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 1201, in visit
+    super(AstAnnotator, self).visit(node)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 133, in visit
+    super(BaseVisitor, self).visit(node)
+  File "/home/alex/.pyenv/versions/3.6.8/lib/python3.6/ast.py", line 253, in visit
+    return visitor(node)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 47, in wrapped
+    f(self, node, *args, **kwargs)
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 673, in visit_Return
+    self.token('return')
+  File "/home/alex/git-repos/bic-bot-py/lib/python3.6/site-packages/pasta/base/annotate.py", line 1340, in token
+    token_val, token.src, token.start[0], token.line))
+pasta.base.annotate.AnnotationError: Expected 'return' but found 'async'
+line 1: async def f():
+```
+
+**Any other info / logs**
+test_tf.py:
+```
+async def f():
+    return
+```
