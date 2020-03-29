@@ -36,7 +36,7 @@ def Tfidf():
 
     # Transforming vectors
     # 此时，tfidf被视为一个只读对象，可以用于将任何向量从旧表示（词频）转换为新表示（TfIdf实值权重）
-    doc_bow = [(0, 1), (1, 1)]
+    # doc_bow = [(0, 1), (1, 1)]
     # 使用模型tfidf，将doc_bow(由词,词频)表示转换成(词,tfidf)表示
     # print(tfidf[doc_bow])
 
