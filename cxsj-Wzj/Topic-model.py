@@ -146,11 +146,13 @@ def textrank_extract(text, pos=False, keyword_num=10):
         print(keyword + "/ ", end='')
     print()
 
-pos = True
-seg_list = seg_to_list('Data/Pingfandeshijie', pos)
-filter_list = word_filter(seg_list, pos)
+# pos = True
+# # seg_list = seg_to_list('Data/Pingfandeshijie', pos)
+# # filter_list = word_filter(seg_list, pos)
+# #
+# # print('TF-IDF模型结果：')
+# # tfidf_extract(filter_list)
+# # print('TextRank模型结果：')
+# # textrank_extract('Data/Pingfandeshijie')
 
-print('TF-IDF模型结果：')
-tfidf_extract(filter_list)
-print('TextRank模型结果：')
-textrank_extract('Data/Pingfandeshijie')
+
